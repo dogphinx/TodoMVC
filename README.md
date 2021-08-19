@@ -1,6 +1,3 @@
 # TodoMVC
+
 TodoMVC
-test
-
-
-ttttttttt!
