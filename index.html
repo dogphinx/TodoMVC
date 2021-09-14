@@ -3,8 +3,19 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Vanilla ES6 • TodoMVC</title>
+  <title>Vanilla ES6 • TodoMVC By Ming</title>
   <link rel="stylesheet" href="css/index.css">
+  <script defer src="js/todo.js"></script>
+  <!-- [COMMENT]  -->
+  <!-- <script defer src="js/todo.js"></script> -->
+  <!-- 
+    1. DomContentLoaded -> DOM 파싱 이후
+        -> head 에 script 위치 시킨 후, 'defer' 속성 주면 동일함.
+    2. window.load -> img, script, 등등 외부 리소스 전부 로드된 이후 
+    (etc) defer / async
+      // jquery cdn (Content Delivery Network의 약자로써 온라인 상의 대용량 컨텐츠를 저렴한 비용으로 빠르게 전송하는 기술)
+    $('.abc')
+  -->
 </head>
 
 <body>
@@ -42,7 +53,6 @@
   </footer>
 
   <link rel="stylesheet" href="css/base.css">
-  <script src="js/todo.js"></script>
 </body>
 
 </html>
