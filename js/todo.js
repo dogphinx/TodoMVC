@@ -59,7 +59,7 @@ const data = {
       toDoInput.value = '';
       paintToDo(toDos[toDos.length - 1]);
     }
-    localStorage.save('toDos', toDos);
+    localStg.save('toDos', toDos);
     countList();
   },
 
@@ -72,7 +72,7 @@ const data = {
     });
 
     toDoList.removeChild(selectLi);
-    localStorage.save('toDos', toDos);
+    localStg.save('toDos', toDos);
 
     // [COMMENT]
     // 1. Array.find  -> id 를 가진 todo 를 찾아요. findIndex
@@ -232,7 +232,7 @@ const data = {
       doesToggleAllChecked();
     }
 
-    localStorage.save('toDos', toDos);
+    localStg.save('toDos', toDos);
   },
 
   filterBtn: function (e) {
@@ -245,7 +245,7 @@ const data = {
 
     toDoHideToggle();
 
-    localStorage.save('selected', e.target.innerText);
+    localStg.save('selected', e.target.innerText);
   },
 
   countList: function () {
@@ -272,7 +272,7 @@ const data = {
       toDos = toDos.filter(toDo => {
         return toDo.status === statusCode.active;
       });
-      localStorage.save('toDos', toDos);
+      localStg.save('toDos', toDos);
 
       for (let i = document.querySelectorAll('.completed').length; i > 0; i--) {
         document.querySelectorAll('.completed')[i - 1].remove();
@@ -283,7 +283,8 @@ const data = {
     },
   },
 
-  localStorage: {
+  localStg: {
+    // localStorage 라는 이름이 이미 쓰이기 때문에 줄임.
     save: function (name, key) {
       // 로컬스토리지에 toDos 데이터와 selected 상태 저장
       try {
@@ -343,7 +344,7 @@ const {
   filterBtn,
   countList,
   clearBtn,
-  localStorage,
+  localStg,
 } = data;
 
 toDoInput.addEventListener('keydown', handleToDoSubmit);
@@ -392,12 +393,12 @@ toDoApp.addEventListener('click', function (e) {
 });
 
 window.addEventListener('load', function () {
-  localStorage.loadToDos();
+  localStg.loadToDos();
   countList();
 
   doesToggleAllChecked();
   clearBtn.show();
-  localStorage.loadSelected();
+  localStg.loadSelected();
 });
 
 /* // 보류
