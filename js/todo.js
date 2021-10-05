@@ -16,274 +16,298 @@ const data = {
   // ??? 이러한 형태를 뭐라고 알려주셨던거같은데 기억이안나용 ㅠㅠ..
   // 다른값은 들어갈 수 없도록 고정시켜준다?
 
-  addToDosNewItem: function (text) {
-    // [로컬스토리지에 저장할 ToDosObj폼]
-    const toDoObj = {
-      text,
-      id: guid(),
-      status: statusCode.active,
-    };
-    toDos.push(toDoObj);
-  },
-
-  guid: function () {
-    // [UUID 생성]
-    function s4() {
-      return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
-      /*
-      (1 + Math.random() * 0x10000을 사용하여 1~65536 난수를 생성함 → 이 값을 x로 설정합니다.
-      x | 0비트 연산, 아니 오히려 연산 → 문이 0인 숫자는 숫자의 정수 부분만 유지하는 것과 같습니다 → 이것은 y가 됩니다.
-      y.to 문자열(16)을 16진수로 지정합니다. 이것은 z가 됩니다.
-      z.substring(1) 첫 번째 문자에서 왼쪽으로 잘라서 뒤에 오는 문자열을 유지합니다.
-      */
-    }
-    return (
-      s4() +
-      s4() +
-      '-' +
-      s4() +
-      '-' +
-      s4() +
-      '-' +
-      s4() +
-      '-' +
-      s4() +
-      s4() +
-      s4()
-    );
-  },
-
-  handleToDoSubmit: function (e) {
-    if (e.key === 'Enter') {
-      addToDosNewItem(toDoInput.value);
-      toDoInput.value = '';
-      paintToDo(toDos[toDos.length - 1]);
-    }
-    localStg.save('toDos', toDos);
-    countList();
-  },
-
-  deleteToDo: function (e) {
-    // [해당 아이디에 해당하는 toDo 삭제]
-    const selectLi = e.target.closest('.todo-list li');
-
-    toDos = toDos.filter(toDo => {
-      return toDo.id !== selectLi.id;
-    });
-
-    toDoList.removeChild(selectLi);
-    localStg.save('toDos', toDos);
-
-    // [COMMENT]
-    // 1. Array.find  -> id 를 가진 todo 를 찾아요. findIndex
-    // toDos = ? Array 원천 자체를 수정 slice, concat , splice
-    // const changeToDo = toDos.filter(toDos => {
-    //   console.log(toDos.id);
-    //   console.log(typeof toDos.id);
-    //   console.log(typeof parseInt(e.path[1].id));
-    //   return toDos.id !== parseInt(e.path[1].id);
-    // });
-    // console.log(changeToDo);
-
-    // [COMMENT]
-    // saveToDos() 다시 부를 필요가?  ????????? 이건 음....불러야하지않나?ㅠㅠㅠ...어떻게 안부르고 처리할 수 가 있을지..
-    // filter 를 이용해서 '삭제'만 간결화 해보아요
-    // toDos = changeToDo;
-    //saveToDos();
-    // loadToDos();
-
-    if (toDos.length === 0) {
-      mainSection.style.display = 'none';
-    }
-    countList();
-  },
-
-  paintToDo: function (toDoItem) {
-    const li = document.createElement('li');
-    const input = document.createElement('input');
-    const label = document.createElement('label');
-    const delBtn = document.createElement('button');
-
-    input.type = 'checkbox';
-    input.className = 'toggle';
-    delBtn.className = 'destroy';
-    delBtn.addEventListener('click', deleteToDo);
-
-    li.id = toDoItem.id;
-    if (toDoItem.status === statusCode.completed) {
-      li.classList.add('completed');
-      input.checked = true;
-    }
-    label.innerText = toDoItem.text;
-    li.append(input, label, delBtn);
-    toDoList.appendChild(li);
-
-    mainSection.style.display = 'block';
-  },
-
-  statusCodeChange: function (e, changeStatus) {
-    // 이벤트가 발생한 toDoItem에, 두번째 매개변수에 해당하는 statusCode로 변경.
-    toDos.map(toDoItem => {
-      if (toDoItem.id === e.target.closest('.todo-list li').id) {
-        toDoItem.status = changeStatus;
+  toDoDataParse: {
+    create: function (e) {
+      function addToDosNewItem(text) {
+        // [로컬스토리지에 저장할 ToDosObj폼]
+        const toDoObj = {
+          text,
+          id: checkOverlapping(guid()),
+          status: statusCode.active,
+        };
+        toDos.push(toDoObj);
       }
-    });
-  },
 
-  toDoHideToggle: function () {
-    // [Active 또는 Completed 일 때 hide 제어]
-    const selectedBtn = document.querySelector('.selected');
-    if (selectedBtn.innerText === 'Active') {
-      // Active 버튼활성화 -> completed 클래스를 지니고있으면 hide
-      for (const values of toDoList.childNodes.values()) {
-        if (!values.classList.contains('completed')) continue;
-        values.classList.add('hide');
-      }
-    } else if (selectedBtn.innerText === 'Completed') {
-      // Completed 버튼활성화 -> completed 클래스를 가지고있지않으면 hide
-      for (const values of toDoList.childNodes.values()) {
-        if (values.classList.contains('completed')) continue;
-        values.classList.add('hide');
-      }
-    }
-  },
-
-  doesToggleAllChecked: function () {
-    // [토글올 화살표 checked 여부]
-    // 모든 toDoItem 들이 checked 이면, 토글체크 checked
-    toDoList.childElementCount ===
-    document.querySelectorAll('.todo-list li input:checked').length
-      ? (document.querySelector('#toggle-all').checked = true)
-      : (document.querySelector('#toggle-all').checked = false);
-  },
-
-  checkToggleBtn: function (e) {
-    // [모든 리스트 체크 토글 + 각 아이템별 체크 토글]
-    // 모두 체크되어있냐? 예(체크해제) : 체크
-
-    // [toggle-all 버튼]
-    const toggleAll = document.querySelector('#toggle-all');
-    if (e.target === toggleAll) {
-      // [filter - All 체크되어 있을 때]
-      // [전부 completed 일 때, undefined 반환 -> 체크를 풀고 active 로 변경]
-      if (
-        toDos.find(toDoItem => toDoItem.status === statusCode.active) ===
-        undefined
-      ) {
-        toDos.map(toDoItem => (toDoItem.status = statusCode.active));
-        // status 가 complete 일 때 일어나는 현상들 여기오게 (checked 랑 li class에 추가 )
-        for (let i = 0; i < toDoList.childElementCount; i++) {
-          toDoList.children[i].classList.remove('completed');
-          toDoList.children[i].firstElementChild.checked = false;
+      function guid() {
+        // [UUID 생성]
+        function s4() {
+          return (((1 + Math.random()) * 0x10000) | 0)
+            .toString(16)
+            .substring(1);
+          /*
+          (1 + Math.random() * 0x10000을 사용하여 1~65536 난수를 생성함 → 이 값을 x로 설정합니다.
+          x | 0비트 연산, 아니 오히려 연산 → 문이 0인 숫자는 숫자의 정수 부분만 유지하는 것과 같습니다 → 이것은 y가 됩니다.
+          y.to 문자열(16)을 16진수로 지정합니다. 이것은 z가 됩니다.
+          z.substring(1) 첫 번째 문자에서 왼쪽으로 잘라서 뒤에 오는 문자열을 유지합니다.
+          */
         }
-      } else {
-        // [모두 active 이거나 하나라도 active 가 있으면 -> 모두 complete 로 변경]
-        toDos.map(toDoItem => (toDoItem.status = statusCode.completed));
-        for (let i = 0; i < toDoList.childElementCount; i++) {
-          if (toDoList.children[i].classList.contains('completed')) continue;
-          toDoList.children[i].classList.add('completed');
-          toDoList.children[i].firstElementChild.checked = true;
-        }
+        return (
+          s4() +
+          s4() +
+          '-' +
+          s4() +
+          '-' +
+          s4() +
+          '-' +
+          s4() +
+          '-' +
+          s4() +
+          s4() +
+          s4()
+        );
+        // UUID 표준에 따라 이름을 부여하면 고유성을 완벽하게 보장할 수는 없지만 실제 사용상에서 중복될 가능성이 거의 없다고 인정되기 때문에 많이 사용되고 있다. -> 중복될 수 있으니 중복확인 작업하기.
       }
 
-      if (document.querySelector('.selected').innerText === 'Active') {
-        // [filter - Active 체크되어 있을 때]
+      function checkOverlapping(id) {
+        // 매개변수로 받은 아이디가 겹치는게 있는지 체크되어
         if (
-          // 전부 다 hide 일 때 -> hide 제거해서 보이게
-          toDoList.querySelectorAll('.hide').length === toDoList.children.length
+          JSON.parse(localStorage.getItem('toDos')).filter(
+            toDoItem => toDoItem.id === id,
+          ).length === 0
         ) {
-          for (const values of toDoList.querySelectorAll('.hide').values()) {
-            values.classList.remove('hide');
-          }
+          return id;
         } else {
-          toDoHideToggle();
+          checkOverlapping(guid());
         }
-      } else if (
-        document.querySelector('.selected').innerText === 'Completed'
-      ) {
-        // [filter - Completed 체크되어 있을 때]
-        if (
-          // 전부 다 completed 일 때 -> hide 제거 (누른시점을 헷갈리지말자 누른 후 바뀌는 상태를 인지)
-          toDoList.querySelectorAll('.completed').length ===
-          toDoList.children.length
-        ) {
-          for (const values of toDoList.querySelectorAll('.hide').values()) {
-            values.classList.remove('hide');
+        // filter 해서 [] 빈배열을 반환하면 길이는 0, 겹치는게 있으면 0 이 아닌숫자를 반환
+      }
+
+      function handleToDoSubmit(e) {
+        if (e.key === 'Enter') {
+          addToDosNewItem(toDoInput.value);
+          toDoInput.value = '';
+          toDoRender.paintToDo(toDos[toDos.length - 1]);
+          storageData.save('toDos', toDos);
+          toDoRender.countList();
+          if (document.querySelector('.selected').innerText === 'Completed') {
+            toDoRender.toDoHideToggle();
           }
-        } else {
-          toDoHideToggle();
         }
       }
 
-      // [각 toDoItem 개별 체크]
-    } else if (e.target.parentElement.parentElement === toDoList) {
-      // [ toDoItem status 변경]
-      if (e.target.closest('.todo-list li').classList.contains('completed')) {
-        // [해당 id 의 class 가 completed 일 때,]
-        statusCodeChange(e, statusCode.active);
-        e.target.closest('.todo-list li').classList.remove('completed');
-        toDoHideToggle();
-      } else {
-        // [해당 id 의 class 가 completed 가 아닐 때,]
-        statusCodeChange(e, statusCode.completed);
-        e.target.closest('.todo-list li').classList.add('completed');
-        toDoHideToggle();
-      }
-      doesToggleAllChecked();
-    }
-
-    localStg.save('toDos', toDos);
-  },
-
-  filterBtn: function (e) {
-    for (const values of toDoList.querySelectorAll('.hide').values()) {
-      values.classList.remove('hide');
-    }
-
-    document.querySelector('.selected').classList.remove('selected');
-    e.target.classList.add('selected');
-
-    toDoHideToggle();
-
-    localStg.save('selected', e.target.innerText);
-  },
-
-  countList: function () {
-    // [완료 체크 되지않은 리스트의 갯수를 span(.todo-count) 태그에 넣기]
-    // 전체 toDo Child 숫자 - completed 갯수만 제외
-    const activeCount =
-      toDoList.childElementCount -
-      toDoList.querySelectorAll('.completed').length;
-    document.querySelector('.todo-count').innerText = `${activeCount} ${
-      activeCount <= 1 ? 'item' : 'items'
-    } left`;
-  },
-
-  clearBtn: {
-    show: function () {
-      if (toDoList.querySelector('.completed') === null) {
-        document.querySelector('.clear-completed').style.display = 'none';
-      } else {
-        document.querySelector('.clear-completed').style.display = 'block';
-      }
+      handleToDoSubmit(e);
     },
-    clearCompleted: function () {
-      // [completed 인 toDo 식제]
+
+    update: {
+      statusCodeChange: function (e, changeStatus) {
+        // 이벤트가 발생한 toDoItem에, 두번째 매개변수에 해당하는 statusCode로 변경.
+        toDos.map(toDoItem => {
+          if (toDoItem.id === e.target.closest('.todo-list li').id) {
+            toDoItem.status = changeStatus;
+          }
+        });
+      },
+
+      checkToggleBtn: function (e) {
+        // [모든 리스트 체크 토글 + 각 아이템별 체크 토글]
+        // 모두 체크되어있냐? 예(체크해제) : 체크
+
+        // [toggle-all 버튼]
+        const toggleAll = document.querySelector('#toggle-all');
+        if (e.target === toggleAll) {
+          // [filter - All 체크되어 있을 때]
+          // [전부 completed 일 때, undefined 반환 -> 체크를 풀고 active 로 변경]
+          if (
+            toDos.find(toDoItem => toDoItem.status === statusCode.active) ===
+            undefined
+          ) {
+            toDos.map(toDoItem => (toDoItem.status = statusCode.active));
+            // status 가 complete 일 때 일어나는 현상들 여기오게 (checked 랑 li class에 추가 )
+            for (let i = 0; i < toDoList.childElementCount; i++) {
+              toDoList.children[i].classList.remove('completed');
+              toDoList.children[i].firstElementChild.checked = false;
+            }
+          } else {
+            // [모두 active 이거나 하나라도 active 가 있으면 -> 모두 complete 로 변경]
+            toDos.map(toDoItem => (toDoItem.status = statusCode.completed));
+            for (let i = 0; i < toDoList.childElementCount; i++) {
+              if (toDoList.children[i].classList.contains('completed'))
+                continue;
+              toDoList.children[i].classList.add('completed');
+              toDoList.children[i].firstElementChild.checked = true;
+            }
+          }
+
+          if (document.querySelector('.selected').innerText === 'Active') {
+            // [filter - Active 체크되어 있을 때]
+            if (
+              // 전부 다 hide 일 때 -> hide 제거해서 보이게
+              toDoList.querySelectorAll('.hide').length ===
+              toDoList.children.length
+            ) {
+              for (const values of toDoList
+                .querySelectorAll('.hide')
+                .values()) {
+                values.classList.remove('hide');
+              }
+            } else {
+              toDoRender.toDoHideToggle();
+            }
+          } else if (
+            document.querySelector('.selected').innerText === 'Completed'
+          ) {
+            // [filter - Completed 체크되어 있을 때]
+            if (
+              // 전부 다 completed 일 때 -> hide 제거 (누른시점을 헷갈리지말자 누른 후 바뀌는 상태를 인지)
+              toDoList.querySelectorAll('.completed').length ===
+              toDoList.children.length
+            ) {
+              for (const values of toDoList
+                .querySelectorAll('.hide')
+                .values()) {
+                values.classList.remove('hide');
+              }
+            } else {
+              toDoRender.toDoHideToggle();
+            }
+          }
+
+          // [각 toDoItem 개별 체크]
+        } else if (e.target.parentElement.parentElement === toDoList) {
+          // [ toDoItem status 변경]
+          if (
+            e.target.closest('.todo-list li').classList.contains('completed')
+          ) {
+            // [해당 id 의 class 가 completed 일 때,]
+            toDoDataParse.update.statusCodeChange(e, statusCode.active);
+            e.target.closest('.todo-list li').classList.remove('completed');
+            toDoRender.toDoHideToggle();
+          } else {
+            // [해당 id 의 class 가 completed 가 아닐 때,]
+            toDoDataParse.update.statusCodeChange(e, statusCode.completed);
+            e.target.closest('.todo-list li').classList.add('completed');
+            toDoRender.toDoHideToggle();
+          }
+          toDoRender.doesToggleAllChecked();
+        }
+
+        storageData.save('toDos', toDos);
+      },
+    },
+
+    delete: function (e) {
+      // [해당 아이디에 해당하는 toDo 삭제]
+      const selectLi = e.target.closest('.todo-list li');
+
       toDos = toDos.filter(toDo => {
-        return toDo.status === statusCode.active;
+        return toDo.id !== selectLi.id;
       });
-      localStg.save('toDos', toDos);
 
-      for (let i = document.querySelectorAll('.completed').length; i > 0; i--) {
-        document.querySelectorAll('.completed')[i - 1].remove();
+      toDoList.removeChild(selectLi);
+      storageData.save('toDos', toDos);
+
+      if (toDos.length === 0) {
+        mainSection.style.display = 'none';
       }
-
-      countList();
-      clearBtn.show();
+      toDoRender.countList();
     },
   },
 
-  localStg: {
+  toDoRender: {
+    paintToDo: function (toDoItem) {
+      const li = document.createElement('li');
+      const input = document.createElement('input');
+      const label = document.createElement('label');
+      const delBtn = document.createElement('button');
+
+      input.type = 'checkbox';
+      input.className = 'toggle';
+      delBtn.className = 'destroy';
+      delBtn.addEventListener('click', toDoDataParse.delete);
+
+      li.id = toDoItem.id;
+      if (toDoItem.status === statusCode.completed) {
+        li.classList.add('completed');
+        input.checked = true;
+      }
+      label.innerText = toDoItem.text;
+      li.append(input, label, delBtn);
+      toDoList.appendChild(li);
+
+      mainSection.style.display = 'block';
+    },
+
+    toDoHideToggle: function () {
+      // [Active 또는 Completed 일 때 hide 제어]
+      const selectedBtn = document.querySelector('.selected');
+      if (selectedBtn.innerText === 'Active') {
+        // Active 버튼활성화 -> completed 클래스를 지니고있으면 hide
+        for (const values of toDoList.childNodes.values()) {
+          if (!values.classList.contains('completed')) continue;
+          values.classList.add('hide');
+        }
+      } else if (selectedBtn.innerText === 'Completed') {
+        // Completed 버튼활성화 -> completed 클래스를 가지고있지않으면 hide
+        for (const values of toDoList.childNodes.values()) {
+          if (values.classList.contains('completed')) continue;
+          values.classList.add('hide');
+        }
+      }
+    },
+
+    doesToggleAllChecked: function () {
+      // [토글올 화살표 checked 여부]
+      // 모든 toDoItem 들이 checked 이면, 토글체크 checked
+      toDoList.childElementCount ===
+      document.querySelectorAll('.todo-list li input:checked').length
+        ? (document.querySelector('#toggle-all').checked = true)
+        : (document.querySelector('#toggle-all').checked = false);
+    },
+
+    filterBtn: function (e) {
+      for (const values of toDoList.querySelectorAll('.hide').values()) {
+        values.classList.remove('hide');
+      }
+
+      document.querySelector('.selected').classList.remove('selected');
+      e.target.classList.add('selected');
+
+      toDoRender.toDoHideToggle();
+
+      storageData.save('selected', e.target.innerText);
+    },
+
+    countList: function () {
+      // [완료 체크 되지않은 리스트의 갯수를 span(.todo-count) 태그에 넣기]
+      // 전체 toDo Child 숫자 - completed 갯수만 제외
+      const activeCount =
+        toDoList.childElementCount -
+        toDoList.querySelectorAll('.completed').length;
+      document.querySelector('.todo-count').innerText = `${activeCount} ${
+        activeCount <= 1 ? 'item' : 'items'
+      } left`;
+    },
+
+    clearBtn: {
+      show: function () {
+        if (toDoList.querySelector('.completed') === null) {
+          document.querySelector('.clear-completed').style.display = 'none';
+        } else {
+          document.querySelector('.clear-completed').style.display = 'block';
+        }
+      },
+      clearCompleted: function () {
+        // [completed 인 toDo 식제]
+        toDos = toDos.filter(toDo => {
+          return toDo.status === statusCode.active;
+        });
+        storageData.save('toDos', toDos);
+
+        for (
+          let i = document.querySelectorAll('.completed').length;
+          i > 0;
+          i--
+        ) {
+          document.querySelectorAll('.completed')[i - 1].remove();
+        }
+
+        toDoRender.countList();
+        toDoRender.clearBtn.show();
+      },
+    },
+  },
+
+  storageData: {
     // localStorage 라는 이름이 이미 쓰이기 때문에 줄임.
     save: function (name, key) {
       // 로컬스토리지에 toDos 데이터와 selected 상태 저장
@@ -294,34 +318,39 @@ const data = {
       }
       // localStorage 에는 자바스크립트 data 는 저장할 수 없음. 오직 string만 저장가능. 그러므로 object 가 string 이 되도록 만들어야함! 그래서 JSON.stringify 사용(JavaScript 값이나 객체를 JSON 문자열로 변환)
     },
-    loadToDos: function () {
-      const loadedToDos = localStorage.getItem('toDos');
-      try {
-        if (loadedToDos === null) return;
-        toDos = JSON.parse(loadedToDos);
-        toDos.map(toDoItem => {
-          paintToDo(toDoItem);
-        });
-      } catch (error) {
-        alert(error);
-      }
-    },
-    loadSelected: function () {
-      // 로컬스토리지에 selected 데이터가 없으면 리턴, 데이터가 있으면 데이터이름의 버튼으로 selected 클래스 지정
-      try {
-        const loadedSelectedStatus = localStorage.getItem('selected');
-        if (loadedSelectedStatus === null) return;
-        if (JSON.parse(loadedSelectedStatus) === 'All') return;
-        toDoApp.querySelector('.selected').classList.remove('selected');
 
-        const filterBtns = toDoApp.querySelectorAll('.filters a');
-        const filterBtns_arr = Array.prototype.slice.call(filterBtns);
-        filterBtns_arr
-          .find(btn => btn.innerText === JSON.parse(loadedSelectedStatus))
-          .classList.add('selected');
-        toDoHideToggle();
-      } catch (error) {
-        alert(error);
+    load: function (name) {
+      if (localStorage.getItem(name) === null) return;
+
+      if (name === 'toDos') {
+        try {
+          toDos = JSON.parse(localStorage.getItem(name));
+          toDos.map(toDoItem => {
+            toDoRender.paintToDo(toDoItem);
+          });
+        } catch (error) {
+          alert(error);
+        }
+      }
+
+      if (name === 'selected') {
+        // 로컬스토리지에 selected 데이터가 없으면 리턴, 데이터가 있으면 데이터이름의 버튼으로 selected 클래스 지정
+        try {
+          if (JSON.parse(localStorage.getItem(name)) === 'All') return;
+
+          toDoApp.querySelector('.selected').classList.remove('selected');
+
+          const filterBtns = toDoApp.querySelectorAll('.filters a');
+          const filterBtns_arr = Array.prototype.slice.call(filterBtns);
+          filterBtns_arr
+            .find(
+              btn => btn.innerText === JSON.parse(localStorage.getItem(name)),
+            )
+            .classList.add('selected');
+          toDoRender.toDoHideToggle();
+        } catch (error) {
+          alert(error);
+        }
       }
     },
   },
@@ -329,29 +358,14 @@ const data = {
 
 // [비구조화 할당으로 data.blar 를 보기편하게 변경]
 let { toDos } = data;
-const {
-  selected,
-  statusCode,
-  addToDosNewItem,
-  guid,
-  handleToDoSubmit,
-  deleteToDo,
-  paintToDo,
-  statusCodeChange,
-  toDoHideToggle,
-  doesToggleAllChecked,
-  checkToggleBtn,
-  filterBtn,
-  countList,
-  clearBtn,
-  localStg,
-} = data;
+const { selected, statusCode, toDoDataParse, toDoRender, storageData } = data;
 
-toDoInput.addEventListener('keydown', handleToDoSubmit);
+toDoInput.addEventListener('keydown', toDoDataParse.create);
 
 // COMMENT
 // paintTodo() -> 하나의 todo를 그려내는 함수가 아닌, 'data'를 받아서, 전체 그림
 // '반복'의 횟수는, paintTodo 가 정함.
+// ===> ??? 이 부분은 아직 좀 이해가 안가요 '반복'의 횟수는, paintTodo 가 정함. 이게 정확히 뭘 의미하는건지 물어보기
 
 // paintTodo(todoList<Array>) {}
 // paintTodo -> toDos <-
@@ -373,19 +387,20 @@ https://stackoverflow.com/questions/37270787/uncaught-syntaxerror-failed-to-exec
 toDoApp.addEventListener('click', function (e) {
   // [toDoItem Input checkbox, toggle-all checkbox]
   if (e.target.tagName === 'INPUT') {
-    checkToggleBtn(e);
-    countList();
-    clearBtn.show();
+    toDoDataParse.update.checkToggleBtn(e);
+    toDoRender.countList();
+    toDoRender.clearBtn.show();
   }
   // [All, Active, Completed 버튼]
   // ↓ if (e.target.tagName === 'A') showEachStatusBtn(e); A 버튼으로 하면 확실치 않으니 정확하게 해당이름일 때만 작동하게 변경.
   if (Object.values(selected).includes(e.target.innerText.toUpperCase()))
-    filterBtn(e);
+    toDoRender.filterBtn(e);
 
   // [clearCompleted 버튼]
-  // tagName 으로 했더니, Clear completed 와 각 아이템의 deleteToDo 기능이 겹침.
+  // tagName 으로 했더니, Clear completed 와 각 아이템의 delete 기능이 겹침.
   // if (e.target.tagName === 'BUTTON') clearCompleted();
-  if (e.target.innerText === 'Clear completed') clearBtn.clearCompleted();
+  if (e.target.innerText === 'Clear completed')
+    toDoRender.clearBtn.clearCompleted();
 
   if (toDoList.childElementCount === 0) {
     mainSection.style.display = 'none';
@@ -393,12 +408,13 @@ toDoApp.addEventListener('click', function (e) {
 });
 
 window.addEventListener('load', function () {
-  localStg.loadToDos();
-  countList();
-
-  doesToggleAllChecked();
-  clearBtn.show();
-  localStg.loadSelected();
+  // load 부분이 read? (crud)
+  storageData.load('toDos');
+  storageData.load('selected');
+  // 만들고보니 굳이 이렇게 매개변수로 나눌필요도 없었던거 같긴한데... 나중을 생각하면 나눠두는게 맞는거 같아서 이대로 둠.
+  toDoRender.countList();
+  toDoRender.doesToggleAllChecked();
+  toDoRender.clearBtn.show();
 });
 
 /* // 보류
