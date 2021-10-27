@@ -5,9 +5,9 @@ const toDoList = toDoApp.querySelector('.todo-list');
 const data = {
   toDos: [],
   selected: {
-    All: 'ALL',
-    Active: 'ACTIVE',
-    Completed: 'COMPLETED',
+    all: 'ALL',
+    active: 'ACTIVE',
+    completed: 'COMPLETED',
   },
   statusCode: {
     active: 'ACTIVE',
@@ -15,6 +15,10 @@ const data = {
   },
   // ??? 이러한 형태를 뭐라고 알려주셨던거같은데 기억이안나용 ㅠㅠ..
   // 다른값은 들어갈 수 없도록 고정시켜준다?
+  // A. status -> 'ALL', 'ACTIVE', 'COMPLETED' ... => if(todo.status === 'ALL' )
+  // 1. 휴먼에러가 날 수 있다.
+  // 2. 참조값으로, ENUM으로 선언해놓고 관리하게 되면, 유지보수성 증대.
+  // => 하나의 파일에서만 수정해주면 전체 코드에 반영됨. data.selected.All 의 값을 'asdfc' 로 바꾸면 참조된 모든 값이 바뀌기때문에.
 
   toDoDataParse: {
     create: function (e) {
@@ -58,7 +62,31 @@ const data = {
         // UUID 표준에 따라 이름을 부여하면 고유성을 완벽하게 보장할 수는 없지만 실제 사용상에서 중복될 가능성이 거의 없다고 인정되기 때문에 많이 사용되고 있다. -> 중복될 수 있으니 중복확인 작업하기.
       }
 
-      function checkOverlapping(id) {
+      function checkOverlapping(newId) {
+        // early return
+        const todos = localStorage.getItem('toDos');
+        if (!todos) {
+          // 빈거 생성
+          storageData.save('toDos', []);
+        }
+
+        try {
+          if (JSON.parse(todos).filter(todo => todo.id === newId)) {
+            // 아래의 기존코드처럼 부정을 다시 부정하면 오히려 꼬아버리기때문에 그렇게 하지않게끔 피하자!
+            // if else 보다는 if 이면 이거 아니면 빠져나와서 코드순대로 넘어가게끔 하기
+            // if if if return 방식이 더 보기 좋아요!
+            // id 겹쳐! 다시 만들어!
+            return checkOverlapping(guid());
+          }
+          return newId;
+        } catch (error) {
+          console.log(error);
+          // error 처리 alert('일시적 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
+          // history.replace('/')
+        }
+      }
+
+      /* 기존 코드
         // 매개변수로 받은 아이디가 겹치는게 있는지 체크되어
         if (
           JSON.parse(localStorage.getItem('toDos')).filter(
@@ -70,7 +98,7 @@ const data = {
           checkOverlapping(guid());
         }
         // filter 해서 [] 빈배열을 반환하면 길이는 0, 겹치는게 있으면 0 이 아닌숫자를 반환
-      }
+      } */
 
       function handleToDoSubmit(e) {
         if (e.key === 'Enter') {
@@ -78,7 +106,7 @@ const data = {
           toDoInput.value = '';
           toDoRender.paintToDo(toDos[toDos.length - 1]);
           storageData.save('toDos', toDos);
-          toDoRender.countList();
+          toDoRender.countTodos();
           if (document.querySelector('.selected').innerText === 'Completed') {
             toDoRender.toDoHideToggle();
           }
@@ -199,7 +227,7 @@ const data = {
       if (toDos.length === 0) {
         mainSection.style.display = 'none';
       }
-      toDoRender.countList();
+      toDoRender.countTodos();
     },
   },
 
@@ -267,7 +295,15 @@ const data = {
       storageData.save('selected', e.target.innerText);
     },
 
-    countList: function () {
+    countTodos: function () {
+      // localhost:5000/api/users [GET]
+      // localhost:5000/api/users/123 [POST] { name: 'ddd' } << 페이로드 데이터
+      // localhost:5000/api/users/123 [PUT] { name: 'ddd', age: 21 }
+      // - REST API : localhost:5000/api/users/123 [PUT], { name: 'ccc' } // '이름 변경', { name, age, gender, ..... } 이면 이것을 { ...user, name: 'ccc} 로 넘겨줘야 할 것 같지만 보통은 백엔드에서 처리를 하기때문에 그냥 해달라는대로 처리한 후에, get으로 확인해보고 문제가 있으면 의도하신게 이게 맞는지 확인하고 그에 맞게끔 자료를 던져드리면 된다.
+      // 보통 PUT 으로 처리하고 PATCH 잘안쓴다고 하셨음!
+      // localhost:5000/api/users/123 [PATCH] { age: 21 }
+      // localhost:5000/api/users/123 [DELETE]
+
       // [완료 체크 되지않은 리스트의 갯수를 span(.todo-count) 태그에 넣기]
       // 전체 toDo Child 숫자 - completed 갯수만 제외
       const activeCount =
@@ -301,7 +337,7 @@ const data = {
           document.querySelectorAll('.completed')[i - 1].remove();
         }
 
-        toDoRender.countList();
+        toDoRender.countTodos();
         toDoRender.clearBtn.show();
       },
     },
@@ -388,7 +424,7 @@ toDoApp.addEventListener('click', function (e) {
   // [toDoItem Input checkbox, toggle-all checkbox]
   if (e.target.tagName === 'INPUT') {
     toDoDataParse.update.checkToggleBtn(e);
-    toDoRender.countList();
+    toDoRender.countTodos();
     toDoRender.clearBtn.show();
   }
   // [All, Active, Completed 버튼]
@@ -412,7 +448,7 @@ window.addEventListener('load', function () {
   storageData.load('toDos');
   storageData.load('selected');
   // 만들고보니 굳이 이렇게 매개변수로 나눌필요도 없었던거 같긴한데... 나중을 생각하면 나눠두는게 맞는거 같아서 이대로 둠.
-  toDoRender.countList();
+  toDoRender.countTodos();
   toDoRender.doesToggleAllChecked();
   toDoRender.clearBtn.show();
 });
@@ -440,4 +476,12 @@ A DOM Node (which may be an Element) within the DOM tree to watch for changes, o
 // https://www.demo2s.com/javascript/javascript-dom-register-a-mutationobserver-to-many-targets.html 두가지 타겟이상 감시할때.
 ==========> 지인에게 물어봤더니 처음보시는 거라고함. 안쓰는데는 이유가 있을거라고 하셔서 일단 MutationObserver 사용은 보류.
 ==========> 왜 사용하려고 했는가? class 를 감지해서 각 클래스별로 콜백함수를 관리하기에 용이할 것이라고 생각 더 응집력이 높아질 것이라고 기대함.
+*/
+
+// 110번째 줄 코드 innerText === 'Completed' 로 적지않으려면 아래처럼 할까 싶다가 너무 보기 별로인거같아서 변경x
+/*
+console.log(
+  selected.completed.charAt(0) +
+    selected.completed.slice(1, selected.completed.length).toLowerCase(),
+);
 */
