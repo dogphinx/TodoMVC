@@ -56,6 +56,7 @@ completed 클래스가 completed 가 아닌애들에 hide 붙이기
 -----------------------------------------------
 이제 보이는대로 기능구현은 끝났으니 리팩토링 
 
+[toDos]
 - addToDosNewItem 
   투두스에 새 아이템 추가
 
@@ -70,16 +71,6 @@ completed 클래스가 completed 가 아닌애들에 hide 붙이기
 
 - paintToDo (이름을 바꿀까?)
   ToDoItem html 에 그리기.
-
-- saveLocalStorage
-  로컬스토리지에 데이터 저장
-  * filter 상태 저장
-
-- loadToDos
-  로컬스토리지에서 데이터 불러와서 데이터 보여줌
-
-- hideSection 
-  메인섹션 숨기기. 굳이 펑션으로 만들필요가있을까?
 
 - statusCodeChange
   statusCode 변경
@@ -99,14 +90,30 @@ completed 클래스가 completed 가 아닌애들에 hide 붙이기
 - filterBtn
   All / Active / Completed 필터 버튼에 대한 제어
 
+- countList
+  active 갯수 세기
+
+[toDos - clearBtn]
 - showClearBtn
   clear 버튼 showing 제어
 
 - clearCompleted
   clear 버튼 눌러서 completed 만 삭제
 
-- countList
-  active 갯수 세기
+
+
+[localStorage]
+- saveLocalStorage
+  로컬스토리지에 데이터 저장
+  * filter 상태 저장
+
+- loadToDos
+  로컬스토리지에서 데이터 불러와서 데이터 보여줌
 
 - loadSelected
   로드했을 때 이전에 선택한 selected 버튼 활성화
+
+
+
+
+
